@@ -1,0 +1,1 @@
+(This file contains outdated code snippets from an earlier refactoring stage and does not reflect the final project architecture. Refer to `README.md` and the `src/` directory for the current implementation.)
