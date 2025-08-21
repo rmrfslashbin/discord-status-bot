@@ -82,44 +82,44 @@ export async function handleDiscordInteractions(request, context) {
           const customId = interaction.data.custom_id
           const [action] = customId.split(':')
 
-        // --- Handle DEFERRED_UPDATE_MESSAGE for specific actions ---
-        // Actions like 'react' or 'join_activity' that update the original message
-        // should usually be deferred first.
-        if (action === 'react' || action === 'join_activity') {
-          const deferredResponse = new Response(JSON.stringify({
-            type: InteractionResponseType.DEFERRED_UPDATE_MESSAGE,
-          }), { headers: { 'Content-Type': 'application/json' } })
+          // --- Handle DEFERRED_UPDATE_MESSAGE for specific actions ---
+          // Actions like 'react' or 'join_activity' that update the original message
+          // should usually be deferred first.
+          if (action === 'react' || action === 'join_activity') {
+            const deferredResponse = new Response(JSON.stringify({
+              type: InteractionResponseType.DEFERRED_UPDATE_MESSAGE,
+            }), { headers: { 'Content-Type': 'application/json' } })
 
-          // Process the actual logic asynchronously
-          context.ctx.waitUntil(
-            handleComponentInteraction(interaction, context)
-              .catch(async error => {
+            // Process the actual logic asynchronously
+            context.ctx.waitUntil(
+              handleComponentInteraction(interaction, context)
+                .catch(async error => {
                 // Generic error handling if the handler itself throws unexpectedly
-                console.error(`Unhandled error in deferred component interaction (${action}):`, error)
-                try {
-                  await editInteractionResponse(interaction.token, {
-                    content: `❌ An unexpected error occurred while processing '${action}'.`,
-                    ephemeral: true,
-                  }, config)
-                } catch (editError) {
-                  console.error(`Failed to send error edit for deferred component interaction (${action}):`, editError)
-                }
-              }),
-          )
-          return deferredResponse // Return the ACK immediately
-        }
-        // --- End DEFERRED_UPDATE_MESSAGE handling ---
+                  console.error(`Unhandled error in deferred component interaction (${action}):`, error)
+                  try {
+                    await editInteractionResponse(interaction.token, {
+                      content: `❌ An unexpected error occurred while processing '${action}'.`,
+                      ephemeral: true,
+                    }, config)
+                  } catch (editError) {
+                    console.error(`Failed to send error edit for deferred component interaction (${action}):`, editError)
+                  }
+                }),
+            )
+            return deferredResponse // Return the ACK immediately
+          }
+          // --- End DEFERRED_UPDATE_MESSAGE handling ---
 
-        // --- Handle other component interactions directly ---
-        // Actions like 'show_details' or 'check_in' respond ephemerally or with followups
-        const componentResponseData = await handleComponentInteraction(interaction, context)
+          // --- Handle other component interactions directly ---
+          // Actions like 'show_details' or 'check_in' respond ephemerally or with followups
+          const componentResponseData = await handleComponentInteraction(interaction, context)
 
-        // Determine response type (usually CHANNEL_MESSAGE_WITH_SOURCE for ephemeral)
-        // handleComponentInteraction now returns the data payload directly for these cases
-        return new Response(JSON.stringify({
-          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: componentResponseData, // Expecting { content: ..., ephemeral: true } or { embeds: [...], ephemeral: true }
-        }), { headers: { 'Content-Type': 'application/json' } })
+          // Determine response type (usually CHANNEL_MESSAGE_WITH_SOURCE for ephemeral)
+          // handleComponentInteraction now returns the data payload directly for these cases
+          return new Response(JSON.stringify({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: componentResponseData, // Expecting { content: ..., ephemeral: true } or { embeds: [...], ephemeral: true }
+          }), { headers: { 'Content-Type': 'application/json' } })
         }
 
         // Add cases for AUTOCOMPLETE or MODAL_SUBMIT if needed later
@@ -171,6 +171,8 @@ async function handleSlashCommand(interaction, context) {
   const { data: commandData } = interaction // Destructure data
   // commandName will always be 'status' now
   const userId = interaction.member?.user?.id || interaction.user?.id
+  const user = interaction.member?.user || interaction.user
+  const username = user?.display_name || user?.global_name || user?.username || 'Unknown User'
 
   // Validate user ID
   try {
@@ -233,7 +235,7 @@ async function handleSlashCommand(interaction, context) {
     // Process the status update asynchronously *after* responding
     // Use ctx.waitUntil from the handlerContext
     context.ctx.waitUntil(
-      processStatusUpdate(processedStatusText, userId, config)
+      processStatusUpdate(processedStatusText, userId, config, username)
         .then(async messageId => {
           console.log(`Status update processed for user ${userId}, message ID: ${messageId}`)
           // Edit the original deferred response to show success

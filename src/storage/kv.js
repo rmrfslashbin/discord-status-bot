@@ -17,9 +17,10 @@
  * @param {Object} processedStatus - The structured status object returned by the LLM.
  * @param {KVNamespace} kvStore - The KV Namespace binding object.
  * @param {number} historyLimit - Maximum number of history entries to keep.
+ * @param {string} [username] - Optional friendly username to store.
  * @returns {Promise<Object|null>} - The newly stored status entry, or null on error.
  */
-export async function storeUserStatus(userId, rawInput, processedStatus, kvStore, historyLimit = 3) {
+export async function storeUserStatus(userId, rawInput, processedStatus, kvStore, historyLimit = 3, username = null) {
   // Use passed kvStore directly
   if (!userId || !processedStatus || !kvStore) {
     console.error('storeUserStatus: Missing userId, processedStatus, or kvStore binding.')
@@ -40,6 +41,7 @@ export async function storeUserStatus(userId, rawInput, processedStatus, kvStore
       timestamp: new Date().toISOString(),
       raw_input: rawInput,
       processed_status: processedStatus, // Store the LLM output object directly
+      username: username, // Store the friendly username if provided
     }
 
     // Add to history

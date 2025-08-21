@@ -151,7 +151,6 @@ async function gatherBotStats(kvStore, startTime, logger) {
 
           // Check for activity in the specified time period
           let userActiveDuringPeriod = false
-          let _userStatusInPeriod = 0
 
           for (const status of historyData.history) {
             const statusTime = new Date(status.timestamp)

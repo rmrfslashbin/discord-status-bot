@@ -45,7 +45,6 @@ export async function handleDiscordWebhook(request, context) {
       // Extract necessary information
       const statusText = message.content?.trim()
       const userId = message.author?.id
-      const channelId = message.channel_id // DM channel ID for potential replies
 
       if (!userId) {
         console.error('Webhook: Could not determine User ID from DM.')

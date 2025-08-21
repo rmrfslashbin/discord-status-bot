@@ -32,10 +32,11 @@ import { InputValidator } from '../utils/validation.js'
  * @param {string} statusText - The user's raw status narrative.
  * @param {string} userId - The Discord User ID of the person updating status.
  * @param {Configuration} configInstance - The application configuration instance.
+ * @param {string} [username] - Optional friendly username to display in status cards.
  * @returns {Promise<string>} - The Discord message ID of the updated/created status message.
  * @throws {Error} - Throws errors if critical steps fail (e.g., config missing, Discord API fails).
  */
-export async function processStatusUpdate(statusText, userId, configInstance) {
+export async function processStatusUpdate(statusText, userId, configInstance, username = null) {
   // Create request logger with trace ID
   const logger = createRequestLogger(userId, 'status-processor', {
     statusTextLength: statusText?.length || 0,
@@ -135,7 +136,7 @@ export async function processStatusUpdate(statusText, userId, configInstance) {
     // 5. Store the new status entry (raw input + processed output with updated times/trends)
     logger.info('Storing new status entry')
     // Call uses the kvStore variable defined earlier
-    const storedStatusEntry = await storeUserStatus(userId, statusText, newStatusData, kvStore, historyLimit)
+    const storedStatusEntry = await storeUserStatus(userId, statusText, newStatusData, kvStore, historyLimit, username)
     if (!storedStatusEntry) {
       // Log error but proceed with posting the message if possible
       // Error logging now happens inside storeUserStatus
@@ -181,8 +182,8 @@ export async function processStatusUpdate(statusText, userId, configInstance) {
     }
 
     // 6. Format the *final* structured data into a Discord message payload
-    // Pass the final status data, previous status, user profile, and trace ID
-    const messagePayload = formatDiscordMessage(finalStatusData, userId, mostRecentStatus, userProfile, logger.getTraceId())
+    // Pass the final status data, user info, previous status, user profile, and trace ID
+    const messagePayload = formatDiscordMessage(finalStatusData, userId, mostRecentStatus, userProfile, logger.getTraceId(), username)
     logger.debug('Formatted Discord message payload')
 
     // 7. Always create a new message (POST)

@@ -186,6 +186,9 @@ async function handleShowDetails(interaction, params, context) {
       }
     }
 
+    // Get friendly username from stored status data or fallback to mention
+    const displayName = latestStatus.username || `<@${targetUserId}>`
+
     // Format detailed stats based on the status data
     const statusData = latestStatus.processed_status
 
@@ -221,7 +224,7 @@ async function handleShowDetails(interaction, params, context) {
     // Format detailed view
     return {
       embeds: [{
-        title: `${statusData.mood_emoji || '📊'} Detailed Status for <@${targetUserId}>`,
+        title: `${statusData.mood_emoji || '📊'} Detailed Status for ${displayName}`,
         description: `Current status: **${statusData.overall_status}**\n\n${statusData.narrative_summary || '_No summary provided._'}`,
         color: 0x7289da, // Blurple or use theme color if desired
         fields: [

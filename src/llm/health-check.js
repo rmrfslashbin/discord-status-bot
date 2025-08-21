@@ -218,12 +218,12 @@ export class LLMHealthCheck {
   isProviderConfigured(provider) {
     // Check if LLM credentials are set and match the provider
     const configData = this.config.get ? this.config.get() : this.config
-    
+
     if (!configData?.llm) {
       this.logger.error('No LLM configuration found in config data')
       return false
     }
-    
+
     const credentials = configData.llm.apiKey
     if (!credentials) return false
 

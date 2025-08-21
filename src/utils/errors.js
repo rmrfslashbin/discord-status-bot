@@ -492,7 +492,9 @@ export class ErrorHandler {
     }
 
     // Include additional context in development
-    if (typeof process !== 'undefined' && process.env && process.env.ENVIRONMENT === 'development') {
+    // Note: In Cloudflare Workers, environment variables are available via globalThis
+    const isDevelopment = globalThis.ENVIRONMENT === 'development'
+    if (isDevelopment) {
       responseBody.debug = {
         originalMessage: statusError.message,
         context: statusError.context,

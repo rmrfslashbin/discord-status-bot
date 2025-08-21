@@ -149,7 +149,7 @@ export class InputValidator {
       /(insert\s+into)/gi,
       /(delete\s+from)/gi,
       /(update\s+set)/gi,
-      /(\'\s*or\s*\'\w*\'\s*=\s*\'\w*)/gi, // ' or '1'='1' patterns
+      /('\s*or\s*'\w*'\s*=\s*'\w*)/gi, // ' or '1'='1' patterns
       /(;\s*drop)/gi, // Semicolon followed by drop
       /(-{2,}\s*(drop|union|select|delete|insert|update))/gi, // SQL comments before SQL keywords
     ]

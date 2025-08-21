@@ -17,9 +17,10 @@ import { statusThemes, createProgressBar, getTrendIndicator, ratingToBlocks } fr
  * @param {StatusEntry|null} [_previousStatus=null] - Optional previous status data for context.
  * @param {UserProfile|null} [userProfile=null] - Optional user profile data.
  * @param {string|null} [traceId=null] - Optional trace ID for debugging.
+ * @param {string|null} [username=null] - Optional friendly username for display.
  * @returns {DiscordMessagePayload} - Formatted Discord message payload (suitable for POST/PATCH).
  */
-export function formatDiscordMessage(statusData, userId, _previousStatus = null, userProfile = null, traceId = null) {
+export function formatDiscordMessage(statusData, userId, _previousStatus = null, userProfile = null, traceId = null, username = null) {
   // Safely access potentially missing nested properties
   const safeGet = (obj, path, defaultValue = undefined) => path.split('.').reduce((acc, key) => (acc && typeof acc === 'object' && acc[key] !== undefined && acc[key] !== null) ? acc[key] : defaultValue, obj)
 
@@ -166,7 +167,7 @@ export function formatDiscordMessage(statusData, userId, _previousStatus = null,
   const embed = {
     // Use theme prefix and accent bar in title
     title: `${theme.emoji_prefix} ${safeGet(statusData, 'mood_emoji', '👤')} ${theme.accent_bar}`,
-    description: `<@${userId}>'s Status: **${safeGet(statusData, 'overall_status', 'Status Update')}**\n*Updated: <t:${Math.floor(Date.now() / 1000)}:R>*`,
+    description: `${username || `<@${userId}>`}'s Status: **${safeGet(statusData, 'overall_status', 'Status Update')}**\n*Updated: <t:${Math.floor(Date.now() / 1000)}:R>*`,
     color: embedColor, // Use theme color
     fields: fields,
     footer: {
