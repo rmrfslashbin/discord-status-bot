@@ -7,26 +7,26 @@
  */
 export function isComponentExpired(params, maxAgeHours = 24) {
   // Get timestamp from params (usually the second parameter after the action)
-  const timestampStr = params[1]; // e.g., customId = "action:param1:timestamp:param3" -> params = ["param1", "timestamp", "param3"]
+  const timestampStr = params[1] // e.g., customId = "action:param1:timestamp:param3" -> params = ["param1", "timestamp", "param3"]
 
   if (!timestampStr || isNaN(parseInt(timestampStr))) {
-    console.warn('Component expiration check failed: No valid timestamp found in params[1].');
-    return true; // No valid timestamp, consider expired
+    console.warn('Component expiration check failed: No valid timestamp found in params[1].')
+    return true // No valid timestamp, consider expired
   }
 
-  const timestamp = parseInt(timestampStr, 10);
-  const componentTime = new Date(timestamp);
-  const currentTime = new Date();
+  const timestamp = parseInt(timestampStr, 10)
+  const componentTime = new Date(timestamp)
+  const currentTime = new Date()
 
   // Calculate time difference in hours
-  const diffHours = (currentTime - componentTime) / (1000 * 60 * 60);
+  const diffHours = (currentTime - componentTime) / (1000 * 60 * 60)
 
   if (diffHours > maxAgeHours) {
-      console.log(`Component interaction expired. Age: ${diffHours.toFixed(2)}h, Max: ${maxAgeHours}h`);
-      return true;
+    console.log(`Component interaction expired. Age: ${diffHours.toFixed(2)}h, Max: ${maxAgeHours}h`)
+    return true
   }
 
-  return false;
+  return false
 }
 
 /**
@@ -38,18 +38,18 @@ export function isComponentExpired(params, maxAgeHours = 24) {
  */
 export function withExpirationCheck(handlerFunction) {
   // The returned function now accepts the context object
-  return async function(interaction, params, context) {
+  return async function (interaction, params, context) {
     // Check if component is expired
     if (isComponentExpired(params)) {
       // Return an ephemeral message indicating expiration
       // Note: This structure matches the expected response data format
       return {
-        content: "This interaction has expired. Please use the components on the latest status message.",
-        ephemeral: true
-      };
+        content: 'This interaction has expired. Please use the components on the latest status message.',
+        ephemeral: true,
+      }
     }
 
     // If not expired, call the original handler, passing context along
-    return await handlerFunction(interaction, params, context);
-  };
+    return await handlerFunction(interaction, params, context)
+  }
 }

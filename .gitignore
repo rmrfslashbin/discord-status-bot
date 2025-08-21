@@ -1,6 +1,14 @@
+# Project-specific
 .aider*
 wrangler.toml
 .dev.vars
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.sublime-*
+*.swp
+*~
 # Created by https://www.toptal.com/developers/gitignore/api/node
 # Edit at https://www.toptal.com/developers/gitignore?templates=node
 
@@ -156,7 +164,7 @@ dist
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
 
 # Thumbnails
 ._*

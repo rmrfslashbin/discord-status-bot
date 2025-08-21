@@ -14,14 +14,14 @@
  */
 export async function verifyDiscordRequest(rawBody, signature, timestamp, publicKey) {
   if (!signature || !timestamp || !publicKey || !rawBody) {
-    console.warn('Missing signature, timestamp, publicKey, or body for verification.');
-    return false;
+    console.warn('Missing signature, timestamp, publicKey, or body for verification.')
+    return false
   }
 
   try {
-    const signatureBytes = hexToUint8Array(signature);
-    const publicKeyBytes = hexToUint8Array(publicKey);
-    const message = new TextEncoder().encode(timestamp + rawBody);
+    const signatureBytes = hexToUint8Array(signature)
+    const publicKeyBytes = hexToUint8Array(publicKey)
+    const message = new TextEncoder().encode(timestamp + rawBody)
 
     // Import the public key as a CryptoKey
     const cryptoKey = await crypto.subtle.importKey(
@@ -29,28 +29,27 @@ export async function verifyDiscordRequest(rawBody, signature, timestamp, public
       publicKeyBytes, // Raw key bytes
       { name: 'Ed25519' }, // Algorithm identifier for Ed25519
       true, // whether the key is extractable (ignored for Ed25519 verify)
-      ['verify'] // Key usage
-    );
+      ['verify'], // Key usage
+    )
 
     // Use the SubtleCrypto API to verify the signature with the imported CryptoKey
     const isValid = await crypto.subtle.verify(
       'Ed25519',      // Algorithm name must match the key's algorithm
       cryptoKey,      // The imported CryptoKey object
       signatureBytes, // The signature to verify
-      message         // The data that was signed (timestamp + body)
-    );
+      message,         // The data that was signed (timestamp + body)
+    )
 
     if (!isValid) {
-        console.warn('Invalid Discord signature detected.');
+      console.warn('Invalid Discord signature detected.')
     } else {
-        console.log('Discord signature verified successfully.');
+      console.log('Discord signature verified successfully.')
     }
 
-    return isValid;
-
+    return isValid
   } catch (error) {
-    console.error('Error during signature verification:', error);
-    return false;
+    console.error('Error during signature verification:', error)
+    return false
   }
 }
 
@@ -61,11 +60,11 @@ export async function verifyDiscordRequest(rawBody, signature, timestamp, public
  */
 function hexToUint8Array(hexString) {
   if (hexString.length % 2 !== 0) {
-    throw new Error('Invalid hex string length.');
+    throw new Error('Invalid hex string length.')
   }
-  const bytes = new Uint8Array(hexString.length / 2);
+  const bytes = new Uint8Array(hexString.length / 2)
   for (let i = 0; i < hexString.length; i += 2) {
-    bytes[i / 2] = parseInt(hexString.substring(i, i + 2), 16);
+    bytes[i / 2] = parseInt(hexString.substring(i, i + 2), 16)
   }
-  return bytes;
+  return bytes
 }

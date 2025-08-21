@@ -29,12 +29,8 @@ This project implements a Discord bot running as a Cloudflare Worker that uses a
 *   **Custom Emojis:**
     *   Allows users to override default emojis for specific states/metrics.
     *   Managed via `/emoji` command (`list`, `set`, `reset`).
-*   **Status Templates:**
-    *   Save, use, list, and delete reusable status update templates.
-    *   Organize templates by category.
-    *   Managed via `/template` command (`list`, `use`, `save`, `delete`, `export`\*, `import`\*). (\*Placeholders)
 *   **Data Management:**
-    *   `/purge confirm` command to allow users to delete all their stored data (history, profile, templates, activities, logs).
+    *   `/purge confirm` command to allow users to delete all their stored data (history, profile, activities, logs).
 *   **Utility Commands:**
     *   `/health` command to display bot version and status.
 *   **Configurable:** Configure LLM provider, model, Discord settings via environment variables and secrets.
@@ -45,14 +41,14 @@ This project implements a Discord bot running as a Cloudflare Worker that uses a
 1.  **Cloudflare Worker (`src/index.js`):** Main entry point, initializes configuration, routes requests.
 2.  **Configuration (`src/config.js`):** `Configuration` class loads settings from `wrangler.toml` vars, secrets, and optionally KV. Provides access to settings, KV binding, version, build ID.
 3.  **Interaction Handling (`src/discord/interactions.js`):** Verifies requests (`src/discord/verify.js`), routes slash commands and component interactions to specific handlers. Manages deferred responses.
-4.  **Command Handlers (`src/discord/*.js`):** Dedicated files for handling logic of specific commands (`template-commands.js`, `profile.js`, `emoji.js`, `utility-commands.js`).
+4.  **Command Handlers (`src/discord/*.js`):** Dedicated files for handling logic of specific commands (`profile.js`, `emoji.js`, `utility-commands.js`).
 5.  **Component Handler (`src/discord/components.js`):** Handles logic for button/select menu interactions, using expiration checks (`src/utils/component-expiration.js`).
-6.  **Status API (`src/api/status.js`):** Core logic for processing `/status update` or template use: fetches context, loads profile, calls LLM, applies custom emojis, creates activity, stores results, formats message, posts to Discord.
+6.  **Status API (`src/api/status.js`):** Core logic for processing `/status update`: fetches context, loads profile, calls LLM, applies custom emojis, creates activity, stores results, formats message, posts to Discord.
 7.  **LLM Processor (`src/llm/processor.js`):** Constructs context-aware prompts, calls the configured LLM API client (`src/llm/*.js`), parses and validates the dynamic JSON response. Includes context formatting and time utilities (`src/llm/context.js`).
 8.  **Discord API Client (`src/discord/api.js`):** Generic helper (`discordApiRequest`) and specific functions (`createStatusMessage`, `editInteractionResponse`, `sendInteractionFollowup`, `sendDirectMessage`) for interacting with the Discord API.
 9.  **Embed Formatter (`src/discord/embeds.js`):** Formats the dynamic LLM data into themed Discord embeds using helpers from `src/discord/themes.js`. Incorporates profile preferences and adds interactive components.
 10. **Storage (`src/storage/*.js`):** Modules for interacting with Cloudflare KV:
-    *   `kv.js`: Status history, interaction logs, template storage, user data purge.
+    *   `kv.js`: Status history, interaction logs, user data purge.
     *   `profile.js`: User profile settings and custom emojis.
     *   `activity.js`: Activity creation and joining logic.
 11. **Utilities (`src/utils/*.js`):** Helper functions for color conversion, component expiration, time formatting (placeholders).
@@ -87,7 +83,7 @@ This project implements a Discord bot running as a Cloudflare Worker that uses a
 
 5.  **Configure Cloudflare Worker:**
     *   **Log in to Wrangler:** `wrangler login`
-    *   **Create KV Namespace:** This namespace stores all user data (history, profiles, templates, activities, logs).
+    *   **Create KV Namespace:** This namespace stores all user data (history, profiles, activities, logs).
         ```bash
         wrangler kv namespace create STATUS_BOT_STORAGE
         ```
@@ -105,7 +101,7 @@ This project implements a Discord bot running as a Cloudflare Worker that uses a
         ```
 
 6.  **Register Slash Commands:**
-    *   The project includes `register.js` to register all necessary commands (`/status`, `/template`, `/profile`, `/emoji`, `/health`, `/purge`).
+    *   The project includes `register.js` to register all necessary commands (`/status`, `/profile`, `/emoji`, `/health`, `/purge`).
     *   **Set Environment Variables for Script:** Create a `.dev.vars` file in the project root (add to `.gitignore`!) or set environment variables directly:
         ```dotenv
         # .dev.vars (Add this file to .gitignore!)
@@ -136,13 +132,6 @@ This project implements a Discord bot running as a Cloudflare Worker that uses a
 ## Usage
 
 *   **Update Status:** `/status update text: <Your status description>`
-*   **Use Template:** `/template use name: <template_name>`
-*   **Manage Templates:**
-    *   `/template list [category: <category_name>]`
-    *   `/template save name: <name> text: <status_text> [emoji: <emoji>] [category: <category>]`
-    *   `/template delete name: <template_name>`
-    *   `/template export name: <template_name>` (*Placeholder*)
-    *   `/template import code: <export_code>` (*Placeholder*)
 *   **Manage Profile:**
     *   `/profile view`
     *   `/profile theme value: <theme_name>`

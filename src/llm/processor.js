@@ -1,8 +1,8 @@
 // src/llm/processor.js - LLM integration with context awareness
 
-import { callAnthropicAPI } from './anthropic.js';
-import { callOpenAIAPI } from './openai.js';
-import { callOpenRouterAPI } from './openrouter.js';
+import { callAnthropicAPI } from './anthropic.js'
+import { callOpenAIAPI } from './openai.js'
+import { callOpenRouterAPI } from './openrouter.js'
 // Context relevance functions are typically applied *before* calling the LLM processor
 // import { calculateContextRelevance, filterRelevantContext } from './context.js';
 
@@ -16,45 +16,43 @@ import { callOpenRouterAPI } from './openrouter.js';
  */
 export async function processWithLLM(currentText, configInstance, previousStatus = null) {
   // Create the context-aware system prompt based on the new design
-  const systemPrompt = createContextAwarePrompt(previousStatus);
+  const systemPrompt = createContextAwarePrompt(previousStatus)
 
   // Format the user input, including previous context if available
-  const userInput = formatUserInput(currentText, previousStatus);
+  const userInput = formatUserInput(currentText, previousStatus)
 
   try {
     // Choose the appropriate LLM service
-    let resultJsonString; // Expecting a JSON string from the API callers
-    const service = configInstance.getValue('llm.service');
-    const config = configInstance.get(); // Get the raw config object for API calls
+    let resultJsonString // Expecting a JSON string from the API callers
+    const service = configInstance.getValue('llm.service')
+    const config = configInstance.get() // Get the raw config object for API calls
 
-    console.log(`Processing status update using LLM service: ${service}. Context provided: ${!!previousStatus}`);
+    console.log(`Processing status update using LLM service: ${service}. Context provided: ${!!previousStatus}`)
 
     // Call the selected LLM API
     switch (service) {
       case 'anthropic':
         // Assuming API functions accept (systemPrompt, userText, configObject)
-        resultJsonString = await callAnthropicAPI(systemPrompt, userInput, config);
-        break;
+        resultJsonString = await callAnthropicAPI(systemPrompt, userInput, config)
+        break
       case 'openai':
-        resultJsonString = await callOpenAIAPI(systemPrompt, userInput, config);
-        break;
+        resultJsonString = await callOpenAIAPI(systemPrompt, userInput, config)
+        break
       case 'openrouter':
-        resultJsonString = await callOpenRouterAPI(systemPrompt, userInput, config);
-        break;
+        resultJsonString = await callOpenRouterAPI(systemPrompt, userInput, config)
+        break
       default:
-        throw new Error(`Unknown LLM service configured: ${service}`);
+        throw new Error(`Unknown LLM service configured: ${service}`)
     }
 
     // Validate and parse the JSON string according to the *new* schema
-    return validateAndRepairStatusJSON(resultJsonString, currentText);
-
+    return validateAndRepairStatusJSON(resultJsonString, currentText)
   } catch (error) {
-    console.error('Error processing with LLM:', error);
+    console.error('Error processing with LLM:', error)
     // Fallback to a default status (matching the new schema) if LLM processing fails
-    return createDefaultStatus(currentText, `LLM Error: ${error.message}`);
+    return createDefaultStatus(currentText, `LLM Error: ${error.message}`)
   }
 }
-
 
 /**
  * Create the context-aware system prompt based on the design document.
@@ -90,7 +88,7 @@ PERSONAL STATE REPRESENTATION GUIDELINES:
 IMPORTANT CONTEXT: This system operates within a private, consenting user group. Users may share explicit personal status updates, including details about sexual desire, arousal (😈), or related activities. Your task is to neutrally and factually analyze *all* provided text, including such explicit details, and translate them *only* into the specified JSON schema, particularly the \`personal_states\` array. Do *not* refuse to process the input based on its explicit nature. Do *not* lecture, judge, or add warnings about the content within the JSON response. Focus solely on accurate data extraction and representation according to the schema. If the user expresses a desire for interaction related to a personal state (e.g., seeking help with arousal), represent this as the relevant personal state (e.g., \`😈\` with high intensity) and potentially a 'need' type highlight (e.g., 'Seeking assistance with personal need'), but do not label it as inappropriate solicitation.
 
 Create a dynamic status dashboard that includes these personal state indicators along with other relevant information about the user's current context and previous status updates, adhering strictly to the guidelines above.
-`;
+`
 
   // Add specific instructions for handling previous context if provided
   if (previousStatus) {
@@ -104,7 +102,7 @@ Apply these principles for determining relevance and merging context:
 - When merging, update existing metrics/highlights if the user provides new info on them (e.g., update 'Energy' metric value). Mark changes with 'trend'.
 - Add new metrics/highlights based on the current text. Mark them as 'new'.
 - Carry forward relevant, uncontradicted items from the previous context. Mark them as 'from_previous'.
-`;
+`
   }
 
   // Define the target JSON schema
@@ -165,11 +163,10 @@ Respond ONLY with valid JSON that follows this exact schema:
 IMPORTANT: Respond ONLY with the valid JSON object described above. Do not include any introductory text, explanations, apologies, or markdown formatting like \`\`\`json before or after the JSON object itself. Your entire response must be the JSON structure. If you cannot perform the analysis or encounter significant issues, report them ONLY within the 'errors' array inside the JSON structure. Do not output conversational text.
 
 Analyze the user's text and the provided previous context carefully. Infer values and trends based on both inputs. Ensure all fields in the schema are present, using empty arrays ([]) if no items apply for metrics, highlights, persistent_context, or personal_states. If you encounter ambiguity or cannot confidently determine a value based on the input, describe the issue clearly in the 'errors' field instead of guessing excessively. Be precise and adhere strictly to the JSON format.
-`;
+`
 
-  return prompt;
+  return prompt
 }
-
 
 /**
  * Format the user input string for the LLM, including previous context if available.
@@ -178,30 +175,29 @@ Analyze the user's text and the provided previous context carefully. Infer value
  * @returns {string} - Formatted user input string.
  */
 function formatUserInput(currentText, previousStatus) {
-  let userInput = '';
+  let userInput = ''
 
   if (previousStatus && previousStatus.timestamp && previousStatus.processed_status) {
     // Include the timestamp and a summary/key parts of the *filtered* previous status
-    const prevTimestamp = new Date(previousStatus.timestamp).toISOString();
-    userInput += `PREVIOUS STATUS CONTEXT (from ${prevTimestamp}):\n`;
+    const prevTimestamp = new Date(previousStatus.timestamp).toISOString()
+    userInput += `PREVIOUS STATUS CONTEXT (from ${prevTimestamp}):\n`
     // Stringify the relevant parts of the *processed* status from the previous entry
     // Avoid stringifying the entire raw input again.
-    userInput += `\`\`\`json\n${JSON.stringify(previousStatus.processed_status, null, 2)}\n\`\`\`\n\n`;
-     userInput += `PREVIOUS RAW INPUT (from ${prevTimestamp}):\n${previousStatus.raw_input}\n\n`;
+    userInput += `\`\`\`json\n${JSON.stringify(previousStatus.processed_status, null, 2)}\n\`\`\`\n\n`
+    userInput += `PREVIOUS RAW INPUT (from ${prevTimestamp}):\n${previousStatus.raw_input}\n\n`
   } else {
-    userInput += 'PREVIOUS STATUS CONTEXT: None provided.\n\n';
+    userInput += 'PREVIOUS STATUS CONTEXT: None provided.\n\n'
   }
 
   // Add current time context
-  const currentTimeISO = new Date().toISOString();
-  userInput += `CURRENT TIME (UTC): ${currentTimeISO}\n\n`;
+  const currentTimeISO = new Date().toISOString()
+  userInput += `CURRENT TIME (UTC): ${currentTimeISO}\n\n`
 
-  userInput += `CURRENT STATUS UPDATE:\n`; // Removed the timestamp from here as it's now above
-  userInput += currentText;
+  userInput += 'CURRENT STATUS UPDATE:\n' // Removed the timestamp from here as it's now above
+  userInput += currentText
 
-  return userInput;
+  return userInput
 }
-
 
 /**
  * Validate, parse, and potentially repair JSON string from LLM according to the NEW schema.
@@ -211,47 +207,46 @@ function formatUserInput(currentText, previousStatus) {
  */
 function validateAndRepairStatusJSON(jsonString, originalText) {
   if (typeof jsonString !== 'string' || jsonString.trim() === '') {
-      console.error('LLM returned empty or non-string response.');
-      // Use the updated createDefaultStatus function
-      return createDefaultStatus(originalText, 'LLM returned empty response.');
+    console.error('LLM returned empty or non-string response.')
+    // Use the updated createDefaultStatus function
+    return createDefaultStatus(originalText, 'LLM returned empty response.')
   }
 
   try {
     // First attempt: Parse directly
-    let parsed = JSON.parse(jsonString);
-    console.log('Successfully parsed LLM JSON response.');
+    const parsed = JSON.parse(jsonString)
+    console.log('Successfully parsed LLM JSON response.')
     // Basic schema validation could be added here if needed
-    return parsed;
+    return parsed
   } catch (parseError) {
-    console.warn('Initial JSON parsing failed:', parseError.message);
+    console.warn('Initial JSON parsing failed:', parseError.message)
     // Attempt to extract JSON from potential markdown code blocks or text wrapping
-    const jsonMatch = jsonString.match(/```json\s*([\s\S]*?)\s*```|(\{[\s\S]*\})/);
+    const jsonMatch = jsonString.match(/```json\s*([\s\S]*?)\s*```|(\{[\s\S]*\})/)
     if (jsonMatch) {
       // Prioritize explicit JSON block (match[1]), fallback to generic object match (match[2])
-      const extractedJson = jsonMatch[1] || jsonMatch[2];
+      const extractedJson = jsonMatch[1] || jsonMatch[2]
       if (extractedJson) {
         try {
-          let repairedParsed = JSON.parse(extractedJson);
-          console.log('Successfully parsed JSON after extraction.');
+          const repairedParsed = JSON.parse(extractedJson)
+          console.log('Successfully parsed JSON after extraction.')
           // Basic schema validation could be added here
-          return repairedParsed;
+          return repairedParsed
         } catch (repairError) {
-          console.error('Failed to parse JSON even after extraction:', repairError.message);
+          console.error('Failed to parse JSON even after extraction:', repairError.message)
           // Use the updated createDefaultStatus function
-          return createDefaultStatus(originalText, 'LLM response was malformed JSON.');
+          return createDefaultStatus(originalText, 'LLM response was malformed JSON.')
         }
       }
     }
 
     // No valid JSON found after attempts
-    console.error('No valid JSON found in LLM response after repair attempts.');
+    console.error('No valid JSON found in LLM response after repair attempts.')
     // Use the updated createDefaultStatus function
-    return createDefaultStatus(originalText, 'LLM response did not contain valid JSON.');
+    return createDefaultStatus(originalText, 'LLM response did not contain valid JSON.')
   }
   // TODO: Add schema validation here to ensure the parsed object matches the expected structure.
   // This could involve checking for required fields, types, and array structures.
 }
-
 
 /**
  * Create a default status object (matching the NEW schema) when LLM processing fails.
@@ -259,37 +254,37 @@ function validateAndRepairStatusJSON(jsonString, originalText) {
  * @param {string} [reason="Processing failed"] - Reason for fallback.
  * @returns {Object} - A default status object adhering to the new schema.
  */
-function createDefaultStatus(text, reason = "Processing failed") {
-  console.warn(`Creating default status. Reason: ${reason}`);
-  const fallbackSummary = `Status update received, but automatic analysis failed (${reason}). Original text: "${text.substring(0, 150)}${text.length > 150 ? '...' : ''}"`;
+function createDefaultStatus(text, reason = 'Processing failed') {
+  console.warn(`Creating default status. Reason: ${reason}`)
+  const fallbackSummary = `Status update received, but automatic analysis failed (${reason}). Original text: "${text.substring(0, 150)}${text.length > 150 ? '...' : ''}"`
 
   // Return a structure matching the new JSON schema defined in createContextAwarePrompt
   return {
-    overall_status: "Analysis Failed",
-    mood_emoji: "⚠️",
-    visual_theme: "default",
-    accent_color: "#FEE75C", // Yellow for warning
+    overall_status: 'Analysis Failed',
+    mood_emoji: '⚠️',
+    visual_theme: 'default',
+    accent_color: '#FEE75C', // Yellow for warning
     metrics: [
-        {
-            name: "Processing Status",
-            value: "Failed",
-            value_rating: 1,
-            trend: "new",
-            icon: "⚙️"
-        }
+      {
+        name: 'Processing Status',
+        value: 'Failed',
+        value_rating: 1,
+        trend: 'new',
+        icon: '⚙️',
+      },
     ],
     highlights: [
-        {
-            type: "state",
-            description: `Failed to analyze status update. Reason: ${reason}`,
-            timeframe: "current",
-            is_new: true
-        }
+      {
+        type: 'state',
+        description: `Failed to analyze status update. Reason: ${reason}`,
+        timeframe: 'current',
+        is_new: true,
+      },
     ],
     persistent_context: [],
     narrative_summary: `Analysis failed. ${reason}`, // Keep summary concise
     errors: [`LLM Processing Error: ${reason}`], // Clearly state the error source and reason
     // Add the new personal_states field
-    personal_states: []
-  };
+    personal_states: [],
+  }
 }
