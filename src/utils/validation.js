@@ -23,17 +23,17 @@ export class InputValidator {
    */
   validateUserId(userId, fieldName = 'userId') {
     if (!userId) {
-      throw new ValidationError('User ID is required', fieldName, userId, 'REQUIRED')
+      throw new ValidationError('User ID is required', fieldName, userId, 'REQUIRED', this.logger?.getTraceId())
     }
 
     if (typeof userId !== 'string') {
-      throw new ValidationError('User ID must be a string', fieldName, userId, 'INVALID_TYPE')
+      throw new ValidationError('User ID must be a string', fieldName, userId, 'INVALID_TYPE', this.logger?.getTraceId())
     }
 
     // Discord snowflake IDs are 17-19 digits
     if (!/^\d{17,19}$/.test(userId)) {
       this.logger.warn('Invalid user ID format', { userId: userId.substring(0, 8) + '...' })
-      throw new ValidationError('Invalid user ID format', fieldName, userId, 'INVALID_FORMAT')
+      throw new ValidationError('Invalid user ID format', fieldName, userId, 'INVALID_FORMAT', this.logger?.getTraceId())
     }
 
     return userId
@@ -136,17 +136,22 @@ export class InputValidator {
           fieldName,
           content,
           'UNSAFE_CONTENT',
+          this.logger?.getTraceId(),
         )
       }
     }
 
     // Check for SQL injection patterns (even though we don't use SQL)
+    // Made less aggressive to avoid false positives on normal text
     const sqlPatterns = [
-      /('|(\\')|(;)|(\\;)|(--)|(\s*(-|#){2,}))/gi,
       /(union\s+select)/gi,
       /(drop\s+table)/gi,
       /(insert\s+into)/gi,
       /(delete\s+from)/gi,
+      /(update\s+set)/gi,
+      /(\'\s*or\s*\'\w*\'\s*=\s*\'\w*)/gi, // ' or '1'='1' patterns
+      /(;\s*drop)/gi, // Semicolon followed by drop
+      /(-{2,}\s*(drop|union|select|delete|insert|update))/gi, // SQL comments before SQL keywords
     ]
 
     for (const pattern of sqlPatterns) {
@@ -160,6 +165,7 @@ export class InputValidator {
           fieldName,
           content,
           'MALICIOUS_PATTERN',
+          this.logger?.getTraceId(),
         )
       }
     }

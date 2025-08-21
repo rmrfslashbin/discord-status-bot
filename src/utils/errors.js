@@ -11,12 +11,13 @@ export class BaseError extends Error {
    * @param {Object} [context] - Additional error context
    * @param {Error} [cause] - Original error that caused this error
    */
-  constructor(message, code = 'UNKNOWN_ERROR', context = {}, cause = null) {
+  constructor(message, code = 'UNKNOWN_ERROR', context = {}, cause = null, traceId = null) {
     super(message)
     this.name = this.constructor.name
     this.code = code
     this.context = context
     this.cause = cause
+    this.traceId = traceId
     this.timestamp = new Date().toISOString()
 
     // Maintain proper stack trace for where our error was thrown (only available in V8)
@@ -97,8 +98,8 @@ export class ValidationError extends BaseError {
    * @param {*} value - Invalid value
    * @param {string} [code] - Error code
    */
-  constructor(message, field, value, code = 'VALIDATION_ERROR') {
-    super(message, code, { field, value })
+  constructor(message, field, value, code = 'VALIDATION_ERROR', traceId = null) {
+    super(message, code, { field, value }, null, traceId)
     this.field = field
     this.value = value
   }
@@ -522,10 +523,16 @@ export class ErrorHandler {
       statusError = ErrorFactory.fromError(error)
     }
 
+    // Include trace ID in user message if available
+    let content = `❌ ${statusError.getUserMessage()}`
+    if (statusError.traceId) {
+      content += ` (Trace ID: ${statusError.traceId})`
+    }
+
     return {
       type: 4, // CHANNEL_MESSAGE_WITH_SOURCE
       data: {
-        content: `❌ ${statusError.getUserMessage()}`,
+        content,
         flags: ephemeral ? 64 : 0,
       },
     }

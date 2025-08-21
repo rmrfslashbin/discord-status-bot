@@ -35,6 +35,17 @@ async function discordApiRequest(endpoint, method, configInstance, body = null) 
 
   console.log(`Discord API Request: ${method} ${url}`)
 
+  // Development mode: Add small delay to reduce rate limiting and enhanced logging
+  const isDevelopment = configInstance.getValue('environment') === 'development'
+  if (isDevelopment && method === 'POST' && endpoint.includes('/messages')) {
+    console.log('🔧 DEV MODE: Posting to Discord with enhanced logging and rate limit protection')
+    console.log('📝 Posting message:', JSON.stringify(body, null, 2))
+    
+    // Add a small delay in development to reduce chance of rate limits
+    console.log('⏱️ Adding 2s delay to avoid rate limits...')
+    await new Promise(resolve => setTimeout(resolve, 2000))
+  }
+
   try {
     const response = await fetch(url, options)
 
@@ -42,13 +53,25 @@ async function discordApiRequest(endpoint, method, configInstance, body = null) 
     if (response.status === 429) {
       const retryAfter = response.headers.get('Retry-After')
       const retryMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 5000 // Default to 5s
-      console.warn(`Rate limited by Discord. Retrying after ${retryMs}ms...`)
+      
+      // Development mode: use much shorter delays for testing
+      const isDevelopment = configInstance.getValue('environment') === 'development'
+      const actualRetryMs = isDevelopment ? Math.min(retryMs, 5000) : retryMs // Cap at 5s in development
+      
+      console.warn(`Rate limited by Discord. ${isDevelopment ? '(DEV MODE) ' : ''}Retrying after ${actualRetryMs}ms... (Original: ${retryMs}ms)`)
+      
+      // In development, just throw an error immediately to fail fast
+      if (isDevelopment && retryMs > 30000) { // If Discord wants us to wait more than 30s
+        console.warn('Development mode: Skipping long rate limit wait')
+        throw new Error(`Discord API rate limit hit in development. Original wait: ${retryMs}ms. Use production for full rate limit compliance.`)
+      }
+      
       // In a real worker, you might want to defer or queue, but simple delay for example:
-      await new Promise(resolve => setTimeout(resolve, retryMs))
+      await new Promise(resolve => setTimeout(resolve, actualRetryMs))
       // Retry the request (beware of potential infinite loops without limits)
       // return discordApiRequest(endpoint, method, configInstance, body);
       // For simplicity here, we'll just throw an error after one wait.
-      throw new Error(`Discord API rate limit hit. Retry after ${retryMs}ms.`)
+      throw new Error(`Discord API rate limit hit. Retry after ${actualRetryMs}ms.`)
     }
 
     // Attempt to parse JSON response even for non-ok statuses for error details

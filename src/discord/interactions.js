@@ -208,12 +208,13 @@ async function handleSlashCommand(interaction, context) {
     const statusText = statusTextOption?.value
 
     // Validate status text input
+    let processedStatusText
     try {
       const validator = new InputValidator()
       const validatedStatusText = validator.validateStatusText(statusText, 'statusText', 2000)
 
       // Use the validated text for processing
-      const processedStatusText = validatedStatusText
+      processedStatusText = validatedStatusText
     } catch (error) {
       console.error('Status text validation failed:', error)
       const errorResponse = ErrorHandler.toDiscordResponse(error, true)

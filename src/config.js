@@ -5,8 +5,8 @@
  */
 
 // Define constants within the module scope
-const VERSION = '1.0.0' // Example version
-const BUILD_ID = 'v1.0.0-stable' // Updated build ID
+const VERSION = '2025.08.21' // CalVer format: YYYY.MM.DD
+const BUILD_ID = 'v2025.08.21-production-ready' // Updated build ID
 
 export class Configuration {
   // Default configuration that can be overridden

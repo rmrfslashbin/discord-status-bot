@@ -1,6 +1,6 @@
 {
   "name": "discord-status-bot",
-  "version": "2025.01.21",
+  "version": "2025.08.21",
   "description": "AI-powered Discord status bot running on Cloudflare Workers",
   "author": "Robert Sigler <code@sigler.io>",
   "license": "MIT",

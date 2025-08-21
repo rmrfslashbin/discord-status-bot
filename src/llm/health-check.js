@@ -149,10 +149,11 @@ export class LLMHealthCheck {
     const testText = 'OK'
 
     // Use minimal parameters for health check
+    const configData = this.config.get ? this.config.get() : this.config
     const config = {
-      ...this.config,
+      ...configData,
       llm: {
-        ...this.config.llm,
+        ...configData.llm,
         maxTokens: 10, // Minimal tokens for health check
         temperature: 0, // Deterministic response
       },
@@ -216,23 +217,30 @@ export class LLMHealthCheck {
    */
   isProviderConfigured(provider) {
     // Check if LLM credentials are set and match the provider
-    const credentials = this.config.llm.apiKey
+    const configData = this.config.get ? this.config.get() : this.config
+    
+    if (!configData?.llm) {
+      this.logger.error('No LLM configuration found in config data')
+      return false
+    }
+    
+    const credentials = configData.llm.apiKey
     if (!credentials) return false
 
     switch (provider) {
       case 'anthropic':
-        return this.config.llm.service === 'anthropic' &&
-               this.config.llm.anthropicEndpoint &&
+        return configData.llm.service === 'anthropic' &&
+               configData.llm.anthropicEndpoint &&
                credentials.length > 0
 
       case 'openai':
-        return this.config.llm.service === 'openai' &&
-               this.config.llm.openaiEndpoint &&
+        return configData.llm.service === 'openai' &&
+               configData.llm.openaiEndpoint &&
                credentials.length > 0
 
       case 'openrouter':
-        return this.config.llm.service === 'openrouter' &&
-               this.config.llm.openrouterEndpoint &&
+        return configData.llm.service === 'openrouter' &&
+               configData.llm.openrouterEndpoint &&
                credentials.length > 0
 
       default:
