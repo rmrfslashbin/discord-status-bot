@@ -166,6 +166,26 @@ export const commandDefinitions = [
         type: 1, // SUB_COMMAND
       // No options needed
       },
+      {
+        name: 'stats',
+        description: 'View usage statistics and metrics for this bot instance.',
+        type: 1, // SUB_COMMAND
+        options: [
+          {
+            name: 'timeframe',
+            description: 'Time range for statistics',
+            type: 3, // STRING
+            required: false,
+            choices: [
+              { name: 'Last Hour', value: '1h' },
+              { name: 'Last 24 Hours', value: '24h' },
+              { name: 'Last 7 Days', value: '7d' },
+              { name: 'Last 30 Days', value: '30d' },
+              { name: 'All Time', value: 'all' },
+            ],
+          },
+        ],
+      },
       // End top-level /status options
     ],
   }]

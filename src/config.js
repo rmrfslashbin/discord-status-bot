@@ -27,6 +27,10 @@ export class Configuration {
       anthropicEndpoint: 'https://api.anthropic.com/v1/messages',
       openaiEndpoint: 'https://api.openai.com/v1/chat/completions',
       openrouterEndpoint: 'https://openrouter.ai/api/v1/chat/completions',
+      relevanceThreshold: 0.3,
+    },
+    storage: {
+      historyLimit: 3, // Keep only 3 most recent status updates
     },
     environment: 'development', // Added environment tracking
   }
@@ -73,8 +77,8 @@ export class Configuration {
     // Secrets (read from env object)
     this.#config.discord.applicationId = env.DISCORD_APPLICATION_ID || '' // From secret
     this.#config.discord.botToken = env.DISCORD_BOT_TOKEN || '' // From secret
+    this.#config.discord.publicKey = env.DISCORD_PUBLIC_KEY || '' // From secret - moved for security
     // Vars (read from env object)
-    this.#config.discord.publicKey = env.DISCORD_PUBLIC_KEY || '' // From var
     this.#config.discord.statusChannelId = env.STATUS_CHANNEL_ID || '' // From var
 
     // LLM configuration from single secret (provider, key) (read from env object)
@@ -109,6 +113,11 @@ export class Configuration {
     // Load other LLM settings from vars (read from env object), using defaults if not set
     this.#config.llm.maxTokens = parseInt(env.LLM_MAX_TOKENS || Configuration.defaults.llm.maxTokens.toString(), 10) // From var
     this.#config.llm.temperature = parseFloat(env.LLM_TEMPERATURE || Configuration.defaults.llm.temperature.toString()) // From var
+
+    // Load configurable API endpoints from environment (allows custom deployments)
+    this.#config.llm.anthropicEndpoint = env.LLM_ANTHROPIC_ENDPOINT || Configuration.defaults.llm.anthropicEndpoint
+    this.#config.llm.openaiEndpoint = env.LLM_OPENAI_ENDPOINT || Configuration.defaults.llm.openaiEndpoint
+    this.#config.llm.openrouterEndpoint = env.LLM_OPENROUTER_ENDPOINT || Configuration.defaults.llm.openrouterEndpoint
 
     // Ensure numeric values are valid after parsing vars, fallback to defaults if parsing failed
     if (isNaN(this.#config.llm.maxTokens)) {
@@ -243,10 +252,10 @@ export class Configuration {
     const requiredSecrets = {
       'discord.botToken': 'DISCORD_BOT_TOKEN',
       'discord.applicationId': 'DISCORD_APPLICATION_ID',
+      'discord.publicKey': 'DISCORD_PUBLIC_KEY', // Moved to secrets for security
       'llm.apiKey': 'LLM_CREDENTIALS', // Check derived value, source is secret
     }
     const requiredVars = {
-      'discord.publicKey': 'DISCORD_PUBLIC_KEY',
       'discord.statusChannelId': 'STATUS_CHANNEL_ID',
       'llm.model': 'LLM_MODEL',
     }

@@ -1,6 +1,7 @@
 // src/discord/utility-commands.js - Handlers for utility slash commands
 
 import { purgeUserData } from '../storage/kv.js'
+import { getHealthStatusEmbed } from '../llm/health-check.js'
 
 /**
  * Handle /health slash command.
@@ -14,20 +15,40 @@ export async function handleHealthCommand(interaction, context) {
 
   console.log(`Processing /health command for user ${userId}`)
 
-  // Format the health information
-  const healthInfo = {
-    status: 'healthy',
-    version: config.getVersion(),
-    environment: config.getValue('environment', 'unknown'),
-    buildId: config.getBuildId(),
-    timestamp: new Date().toISOString(),
-  }
+  try {
+    // Get LLM provider health status embed
+    const healthEmbed = await getHealthStatusEmbed(config)
 
-  const responseContent = `\`\`\`json\n${JSON.stringify(healthInfo, null, 2)}\n\`\`\``
+    // Add system information to the embed
+    healthEmbed.fields.unshift({
+      name: '🤖 System Status',
+      value: `Version: ${config.getVersion()}\nEnvironment: ${config.getValue('environment', 'unknown')}\nBuild: ${config.getBuildId()}`,
+      inline: false,
+    })
 
-  return {
-    content: responseContent,
-    ephemeral: true, // Show only to the user who invoked it
+    return {
+      embeds: [healthEmbed],
+      ephemeral: true, // Show only to the user who invoked it
+    }
+  } catch (error) {
+    console.error('Error generating health status:', error)
+
+    // Fallback to basic health info if LLM health check fails
+    const healthInfo = {
+      status: 'healthy',
+      version: config.getVersion(),
+      environment: config.getValue('environment', 'unknown'),
+      buildId: config.getBuildId(),
+      timestamp: new Date().toISOString(),
+      error: 'LLM health check failed',
+    }
+
+    const responseContent = `\`\`\`json\n${JSON.stringify(healthInfo, null, 2)}\n\`\`\``
+
+    return {
+      content: responseContent,
+      ephemeral: true,
+    }
   }
 }
 

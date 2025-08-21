@@ -1,11 +1,11 @@
 // src/discord/components.js - Handlers for message component interactions
 
-import { InteractionResponseType } from './interactions.js' // Import response types if needed
+// Response types available in interactions.js if needed
 import { withExpirationCheck } from '../utils/component-expiration.js'
 // Import specific KV functions needed
-import { getLatestUserStatus, getUserStatusHistory, logUserInteraction as logInteractionToKV, getStatusUpdateCountToday } from '../storage/kv.js'
+import { getLatestUserStatus, logUserInteraction as logInteractionToKV, getStatusUpdateCountToday } from '../storage/kv.js'
 import { getUserProfile } from '../storage/profile.js' // For show details
-import { getActivity, joinActivity } from '../storage/activity.js' // For join activity
+import { joinActivity } from '../storage/activity.js' // For join activity
 // Import necessary API functions for responses
 import { sendDirectMessage, editInteractionResponse, sendInteractionFollowup } from './api.js'
 import { getRelativeTime } from '../utils/time.js' // For show details
@@ -48,7 +48,7 @@ async function handleJoinActivity(interaction, params, context) {
   const { config } = context // Get config from context
   const kvStore = config.getKvBinding() // Get kvStore from config
   // Custom ID format: join_activity:targetUserId:timestamp:activityId
-  const [targetUserId, _, activityId] = params // activityId is the 3rd param
+  const [targetUserId, , activityId] = params // activityId is the 3rd param
   const interactingUserId = interaction.member?.user?.id || interaction.user?.id
 
   if (!activityId) {
@@ -177,7 +177,7 @@ async function handleShowDetails(interaction, params, context) {
 
     // Get the user's latest status and profile using the kvStore variable
     const latestStatus = await getLatestUserStatus(targetUserId, kvStore)
-    const userProfile = await getUserProfile(targetUserId, kvStore)
+    await getUserProfile(targetUserId, kvStore)
 
     if (!latestStatus || !latestStatus.processed_status) {
       return {

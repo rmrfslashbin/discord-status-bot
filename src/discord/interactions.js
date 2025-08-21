@@ -2,13 +2,19 @@
 
 import { verifyDiscordRequest } from './verify.js'
 import { processStatusUpdate } from '../api/status.js'
-import { sendInteractionFollowup, editInteractionResponse, sendDirectMessage } from './api.js'
+import { sendInteractionFollowup, editInteractionResponse } from './api.js'
 // Import command handlers
 import { handleProfileCommand } from './profile.js'
 import { handleEmojiCommand } from './emoji.js'
 import { handleHealthCommand, handlePurgeCommand, handleInfoCommand } from './utility-commands.js' // Import new handlers
+import { handleStatsCommand } from './stats.js'
 // Import the component interaction handler
 import { handleComponentInteraction } from './components.js'
+// Import validation utilities
+import { ValidationError } from '../utils/errors.js'
+import { InputValidator } from '../utils/validation.js'
+// Import error handling utilities
+import { ErrorHandler, BaseError } from '../utils/errors.js'
 
 // Discord interaction types
 const InteractionType = {
@@ -72,8 +78,9 @@ export async function handleDiscordInteractions(request, context) {
         console.log('Handling Message Component')
         // Pass the handlerContext created in index.js
         // Determine the action *before* calling the main handler
-        const customId = interaction.data.custom_id
-        const [action] = customId.split(':')
+        {
+          const customId = interaction.data.custom_id
+          const [action] = customId.split(':')
 
         // --- Handle DEFERRED_UPDATE_MESSAGE for specific actions ---
         // Actions like 'react' or 'join_activity' that update the original message
@@ -113,6 +120,7 @@ export async function handleDiscordInteractions(request, context) {
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
           data: componentResponseData, // Expecting { content: ..., ephemeral: true } or { embeds: [...], ephemeral: true }
         }), { headers: { 'Content-Type': 'application/json' } })
+        }
 
         // Add cases for AUTOCOMPLETE or MODAL_SUBMIT if needed later
         // case InteractionType.APPLICATION_COMMAND_AUTOCOMPLETE:
@@ -132,20 +140,23 @@ export async function handleDiscordInteractions(request, context) {
     }
   } catch (error) {
     console.error('Error handling interaction:', error)
-    // Attempt to send an ephemeral error message back to the user if possible
-    // This might fail if a response was already sent or the token expired
-    try {
-      if (interaction.token) {
-        await sendInteractionFollowup(interaction.token, {
-          content: `An error occurred while processing your request: ${error.message}`,
-          flags: 64, // Ephemeral
-        }, config)
+
+    // Use standardized error handling
+    if (error instanceof BaseError) {
+      // For known errors, try to send a user-friendly message
+      try {
+        if (interaction.token) {
+          await sendInteractionFollowup(interaction.token, {
+            content: `An error occurred while processing your request: ${error.message}`,
+            flags: 64, // Ephemeral
+          }, config)
+        }
+      } catch (followupError) {
+        console.error('Failed to send error followup message:', followupError)
       }
-    } catch (followupError) {
-      console.error('Failed to send error followup message:', followupError)
+      // Return a generic server error response
+      return new Response('Internal Server Error', { status: 500 })
     }
-    // Return a generic server error response
-    return new Response('Internal Server Error', { status: 500 })
   }
 }
 
@@ -158,16 +169,22 @@ export async function handleDiscordInteractions(request, context) {
 async function handleSlashCommand(interaction, context) {
   const { config } = context
   const { data: commandData } = interaction // Destructure data
-  const commandName = commandData.name // Will always be 'status' now
+  // commandName will always be 'status' now
   const userId = interaction.member?.user?.id || interaction.user?.id
 
-  if (!userId) {
-    console.error('Could not determine User ID from interaction.')
-    // Respond ephemerally if possible
-    return new Response(JSON.stringify({
-      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-      data: { content: 'Error: Could not identify user.', flags: 64 },
-    }), { headers: { 'Content-Type': 'application/json' } })
+  // Validate user ID
+  try {
+    if (!userId) {
+      throw new ValidationError('Could not determine user ID from interaction', 'userId', userId, 'MISSING')
+    }
+    const validator = new InputValidator()
+    validator.validateUserId(userId)
+  } catch (error) {
+    console.error('User ID validation failed:', error)
+    const errorResponse = ErrorHandler.toDiscordResponse(error, true)
+    return new Response(JSON.stringify(errorResponse), {
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 
   // --- Determine the actual command/group being invoked ---
@@ -190,11 +207,19 @@ async function handleSlashCommand(interaction, context) {
     const statusTextOption = topLevelOption.options?.find(opt => opt.name === 'text')
     const statusText = statusTextOption?.value
 
-    if (!statusText || typeof statusText !== 'string') {
-      return new Response(JSON.stringify({
-        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-        data: { content: 'Error: Status text is required.', flags: 64 }, // Ephemeral
-      }), { headers: { 'Content-Type': 'application/json' } })
+    // Validate status text input
+    try {
+      const validator = new InputValidator()
+      const validatedStatusText = validator.validateStatusText(statusText, 'statusText', 2000)
+
+      // Use the validated text for processing
+      const processedStatusText = validatedStatusText
+    } catch (error) {
+      console.error('Status text validation failed:', error)
+      const errorResponse = ErrorHandler.toDiscordResponse(error, true)
+      return new Response(JSON.stringify(errorResponse), {
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
 
     // Acknowledge the interaction immediately (DEFERRED)
@@ -207,7 +232,7 @@ async function handleSlashCommand(interaction, context) {
     // Process the status update asynchronously *after* responding
     // Use ctx.waitUntil from the handlerContext
     context.ctx.waitUntil(
-      processStatusUpdate(statusText, userId, config)
+      processStatusUpdate(processedStatusText, userId, config)
         .then(async messageId => {
           console.log(`Status update processed for user ${userId}, message ID: ${messageId}`)
           // Edit the original deferred response to show success
@@ -265,6 +290,12 @@ async function handleSlashCommand(interaction, context) {
       type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
       data: responseData, // Expecting { embeds: [...], ephemeral: true }
     }), { headers: { 'Content-Type': 'application/json' } })
+  } else if (subCommandOrGroupName === 'stats') {
+    // Stats command might take some time to gather data, handle directly but could be deferred if needed
+    const responseData = await handleStatsCommand(interaction, context)
+    return new Response(JSON.stringify(responseData), {
+      headers: { 'Content-Type': 'application/json' },
+    })
 
   // --- Subcommand Groups ---
   } else if (subCommandOrGroupName === 'profile') {

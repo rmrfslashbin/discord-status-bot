@@ -2,6 +2,8 @@
 .aider*
 wrangler.toml
 .dev.vars
+backups/
+*.backup.json
 
 # IDE/Editor files
 .vscode/

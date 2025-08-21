@@ -1,5 +1,7 @@
 // src/storage/kv.js - KV storage operations for user status
 
+// import { createLogger } from '../utils/logger.js' // TODO: Migrate KV operations to structured logging
+
 /**
  * Get the KV binding instance from the configuration.
  * Assumes the binding is stored and accessible via the config instance.
@@ -17,7 +19,7 @@
  * @param {number} historyLimit - Maximum number of history entries to keep.
  * @returns {Promise<Object|null>} - The newly stored status entry, or null on error.
  */
-export async function storeUserStatus(userId, rawInput, processedStatus, kvStore, historyLimit = 20) {
+export async function storeUserStatus(userId, rawInput, processedStatus, kvStore, historyLimit = 3) {
   // Use passed kvStore directly
   if (!userId || !processedStatus || !kvStore) {
     console.error('storeUserStatus: Missing userId, processedStatus, or kvStore binding.')

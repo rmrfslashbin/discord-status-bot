@@ -3,6 +3,9 @@
 import { getUserEmojiSet, setCustomEmoji } from '../storage/profile.js'
 // Import suggestions (optional, could be used for autocomplete later)
 // import { getEmojiSuggestions } from './emoji-suggestions.js';
+// Import validation utilities
+import { ValidationError } from '../utils/errors.js'
+import { InputValidator } from '../utils/validation.js'
 
 /**
  * Handle /emoji slash command interactions.
@@ -15,6 +18,20 @@ export async function handleEmojiCommand(interaction, context) {
   const kvStore = configInstance.getKvBinding()
   const userId = interaction.member?.user?.id || interaction.user?.id
 
+  // Validate user ID
+  const validator = new InputValidator()
+  try {
+    validator.validateUserId(userId)
+  } catch (error) {
+    console.error('User ID validation failed in emoji command:', error)
+    return {
+      content: error instanceof ValidationError
+        ? `Validation Error: ${error.message}`
+        : 'Error: Could not identify user.',
+      ephemeral: true,
+    }
+  }
+
   // Options are now nested: status -> emoji -> subcommand -> options
   const emojiSubCommandOption = interaction.data.options?.[0]?.options?.[0]
   if (!emojiSubCommandOption) {
@@ -25,8 +42,8 @@ export async function handleEmojiCommand(interaction, context) {
   const subcommand = emojiSubCommandOption.name
   const options = emojiSubCommandOption.options || [] // Get the actual options for the subcommand
 
-  if (!userId || !kvStore) {
-    return { content: 'Error: Could not identify user or access storage.', ephemeral: true }
+  if (!kvStore) {
+    return { content: 'Error: Could not access storage.', ephemeral: true }
   }
 
   console.log(`Processing /emoji ${subcommand} for user ${userId}`)

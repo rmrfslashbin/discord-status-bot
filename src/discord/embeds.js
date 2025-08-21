@@ -2,17 +2,24 @@
 
 // Import theme definitions and helper functions
 import { statusThemes, createProgressBar, getTrendIndicator, ratingToBlocks } from './themes.js'
-import { hexColorToInt } from '../utils/color.js' // Keep for accent_color fallback if needed
+// import { hexColorToInt } from '../utils/color.js' // Keep for accent_color fallback if needed
+
+// JSDoc type imports for documentation
+/** @typedef {import('../types.js').StatusData} StatusData */
+/** @typedef {import('../types.js').UserProfile} UserProfile */
+/** @typedef {import('../types.js').StatusEntry} StatusEntry */
+/** @typedef {import('../types.js').DiscordMessagePayload} DiscordMessagePayload */
 
 /**
  * Format status data (new schema) into a Discord message payload using themes and profile data.
- * @param {Object} statusData - The structured status data (potentially with custom emojis applied).
+ * @param {StatusData} statusData - The structured status data (potentially with custom emojis applied).
  * @param {string} userId - Discord user ID for mentioning.
- * @param {Object | null} [previousStatus=null] - Optional previous status data for context.
- * @param {Object | null} [userProfile=null] - Optional user profile data.
- * @returns {Object} - Formatted Discord message payload (suitable for POST/PATCH).
+ * @param {StatusEntry|null} [_previousStatus=null] - Optional previous status data for context.
+ * @param {UserProfile|null} [userProfile=null] - Optional user profile data.
+ * @param {string|null} [traceId=null] - Optional trace ID for debugging.
+ * @returns {DiscordMessagePayload} - Formatted Discord message payload (suitable for POST/PATCH).
  */
-export function formatDiscordMessage(statusData, userId, previousStatus = null, userProfile = null) {
+export function formatDiscordMessage(statusData, userId, _previousStatus = null, userProfile = null, traceId = null) {
   // Safely access potentially missing nested properties
   const safeGet = (obj, path, defaultValue = undefined) => path.split('.').reduce((acc, key) => (acc && typeof acc === 'object' && acc[key] !== undefined && acc[key] !== null) ? acc[key] : defaultValue, obj)
 
@@ -163,8 +170,8 @@ export function formatDiscordMessage(statusData, userId, previousStatus = null, 
     color: embedColor, // Use theme color
     fields: fields,
     footer: {
-      // Include theme name in footer
-      text: `Theme: ${themeName} • Powered by AI`, // Removed localeString for consistency
+      // Include theme name and trace ID in footer
+      text: `Theme: ${themeName} • Powered by AI${traceId ? ` • Trace: ${traceId}` : ''}`,
       // icon_url: "URL_TO_YOUR_BOT_ICON"
     },
     timestamp: new Date().toISOString(), // Use ISO timestamp

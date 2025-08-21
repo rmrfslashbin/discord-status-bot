@@ -101,3 +101,96 @@ status: ## Show git and deployment status
 	@echo ""
 	@echo "$(CYAN)Last Commit:$(RESET)"
 	@git log -1 --oneline
+
+# Environment management
+create-env: ## Create a new wrangler environment (usage: make create-env ENV=myenv)
+	@if [ -z "$(ENV)" ]; then \
+		echo "$(CYAN)Error: ENV parameter is required$(RESET)"; \
+		echo "Usage: make create-env ENV=myenv"; \
+		exit 1; \
+	fi
+	@echo "$(CYAN)Creating wrangler environment: $(ENV)$(RESET)"
+	@echo "Creating wrangler.$(ENV).toml..."
+	@sed 's/^name = "discord-status-bot"/name = "discord-status-bot-$(ENV)"/' wrangler.toml > wrangler.$(ENV).toml
+	@echo "Environment file created: wrangler.$(ENV).toml"
+	@echo ""
+	@echo "$(CYAN)Next steps:$(RESET)"
+	@echo "1. Edit wrangler.$(ENV).toml to customize settings"
+	@echo "2. Create KV namespace: make create-kv-env ENV=$(ENV)"
+	@echo "3. Set secrets: make set-secrets-env ENV=$(ENV)"
+	@echo "4. Deploy: make deploy-env ENV=$(ENV)"
+
+create-kv-env: ## Create KV namespace for environment (usage: make create-kv-env ENV=myenv)
+	@if [ -z "$(ENV)" ]; then \
+		echo "$(CYAN)Error: ENV parameter is required$(RESET)"; \
+		echo "Usage: make create-kv-env ENV=myenv"; \
+		exit 1; \
+	fi
+	@echo "$(CYAN)Creating KV namespace for environment: $(ENV)$(RESET)"
+	wrangler kv:namespace create "STATUS_BOT_STORAGE_$(shell echo $(ENV) | tr '[:lower:]' '[:upper:]')" --env $(ENV)
+	@echo ""
+	@echo "$(CYAN)Update your wrangler.$(ENV).toml with the namespace ID from above$(RESET)"
+
+set-secrets-env: ## Set secrets for environment (usage: make set-secrets-env ENV=myenv)
+	@if [ -z "$(ENV)" ]; then \
+		echo "$(CYAN)Error: ENV parameter is required$(RESET)"; \
+		echo "Usage: make set-secrets-env ENV=myenv"; \
+		exit 1; \
+	fi
+	@echo "$(CYAN)Setting secrets for environment: $(ENV)$(RESET)"
+	@echo "Setting DISCORD_APPLICATION_ID..."
+	@wrangler secret put DISCORD_APPLICATION_ID --env $(ENV)
+	@echo "Setting DISCORD_BOT_TOKEN..."
+	@wrangler secret put DISCORD_BOT_TOKEN --env $(ENV)
+	@echo "Setting DISCORD_PUBLIC_KEY..."
+	@wrangler secret put DISCORD_PUBLIC_KEY --env $(ENV)
+	@echo "Setting LLM_CREDENTIALS..."
+	@wrangler secret put LLM_CREDENTIALS --env $(ENV)
+	@echo "$(CYAN)Secrets set for $(ENV) environment$(RESET)"
+
+deploy-env: ## Deploy to specific environment (usage: make deploy-env ENV=myenv)
+	@if [ -z "$(ENV)" ]; then \
+		echo "$(CYAN)Error: ENV parameter is required$(RESET)"; \
+		echo "Usage: make deploy-env ENV=myenv"; \
+		exit 1; \
+	fi
+	@echo "$(CYAN)Deploying to environment: $(ENV)$(RESET)"
+	wrangler deploy --config wrangler.$(ENV).toml
+
+list-envs: ## List all available wrangler environment files
+	@echo "$(CYAN)Available environment files:$(RESET)"
+	@ls -la wrangler*.toml 2>/dev/null || echo "No environment files found"
+	@echo ""
+	@echo "$(CYAN)Create new environment with:$(RESET) make create-env ENV=myenv"
+
+delete-env: ## Delete environment files (usage: make delete-env ENV=myenv)
+	@if [ -z "$(ENV)" ]; then \
+		echo "$(CYAN)Error: ENV parameter is required$(RESET)"; \
+		echo "Usage: make delete-env ENV=myenv"; \
+		exit 1; \
+	fi
+	@echo "$(CYAN)Deleting environment files for: $(ENV)$(RESET)"
+	@if [ -f "wrangler.$(ENV).toml" ]; then \
+		rm -f wrangler.$(ENV).toml; \
+		echo "Deleted wrangler.$(ENV).toml"; \
+	else \
+		echo "Environment file wrangler.$(ENV).toml not found"; \
+	fi
+
+# Complete environment setup workflow
+setup-env: ## Complete setup for new environment (usage: make setup-env ENV=myenv)
+	@if [ -z "$(ENV)" ]; then \
+		echo "$(CYAN)Error: ENV parameter is required$(RESET)"; \
+		echo "Usage: make setup-env ENV=myenv"; \
+		exit 1; \
+	fi
+	@echo "$(CYAN)Setting up complete environment: $(ENV)$(RESET)"
+	make create-env ENV=$(ENV)
+	@echo ""
+	@echo "$(CYAN)Manual steps required:$(RESET)"
+	@echo "1. Update wrangler.$(ENV).toml KV namespace binding with:"
+	@echo "   make create-kv-env ENV=$(ENV)"
+	@echo "2. Set secrets:"
+	@echo "   make set-secrets-env ENV=$(ENV)"
+	@echo "3. Deploy:"
+	@echo "   make deploy-env ENV=$(ENV)"

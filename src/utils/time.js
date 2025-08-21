@@ -26,7 +26,7 @@ export function convertToUserTimezone(isoTimestamp, timezone) {
  * @param {string} [timezone] - Optional timezone (currently unused in this placeholder).
  * @returns {string} - Relative time string.
  */
-export function getRelativeTime(isoTimestamp, timezone) {
+export function getRelativeTime(isoTimestamp, _timezone) {
   // TODO: Implement proper relative time calculation.
   // Intl.RelativeTimeFormat might work but needs careful handling of units.
   console.warn('Relative time calculation not fully implemented.')
